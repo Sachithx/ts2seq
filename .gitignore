@@ -1,0 +1,26 @@
+__pycache__/
+.idea/*
+.mypycache__/*
+Index: .idea/copilot.data.migration.agent.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/copilot.data.migration.agent.xml b/.idea/copilot.data.migration.agent.xml
+new file mode 100644
+--- /dev/null	(date 1767807305326)
++++ b/.idea/copilot.data.migration.agent.xml	(date 1767807305326)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="AgentMigrationStateService">
++    <option name="migrationStatus" value="COMPLETED" />
++  </component>
++</project>
+\ No newline at end of file
+data/HAR/test.pt
+data/HAR/train_event_dataset.pt
+data/HAR/train.pt
+data/HAR/val_event_dataset.pt
+data/HAR/val.pt
+.mypy_cache/*
