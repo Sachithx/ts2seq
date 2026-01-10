@@ -12,6 +12,8 @@ import io
 import os
 import gc
 
+DIR = "/projects/pix2seqdata"
+
 from hierarchical_event_labeling import (
     CompleteHierarchicalEventDataset, 
     HierarchicalAnnotation,
@@ -300,6 +302,7 @@ if __name__ == "__main__":
         train_dataset=train_dataset,
         val_dataset=val_dataset,
         viz_type='line_plot',
-        output_dir='/tmp/ts_coco',
+        output_dir=f'{DIR}/tmp/ts_coco',
         image_size=224
     )
+    
