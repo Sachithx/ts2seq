@@ -24,3 +24,6 @@ data/HAR/train.pt
 data/HAR/val_event_dataset.pt
 data/HAR/val.pt
 .mypy_cache/*
+debug_viz/*
+visualizations/*
+visualizations/
