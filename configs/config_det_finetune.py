@@ -29,8 +29,8 @@ def get_config(config_str=None):
   """config_str is either empty or contains task,architecture variants."""
 
   task_variant = 'object_detection@coco/2017_object_detection'
-  encoder_variant = 'vit-b'                 # Set model architecture.
-  image_size = (640, 640)                   # Set image size.
+  encoder_variant = 'resnet'                 # Set model architecture.
+  image_size = (224, 224)                   # Set image size.
 
 
   tasks_and_datasets = []
