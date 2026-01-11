@@ -219,9 +219,17 @@ class TaskObjectDetection(task_lib.Task):
     # Copy outputs to cpu.
     new_outputs = []
     for i in range(len(outputs)):
-      logging.info('Copying output at index %d to cpu for cpu post-process', i)
-      new_outputs.append(tf.identity(outputs[i]))
-    (images, image_ids, pred_bboxes, pred_bboxes_rescaled, pred_classes,  # pylint: disable=unbalanced-tuple-unpacking
+        logging.info('Copying output at index %d to cpu for cpu post-process', i)
+        output = outputs[i]
+        
+        # Handle PerReplica objects (from multi-GPU/TPU training)
+        if hasattr(output, 'values'):
+            # Concatenate values from all replicas
+            output = tf.concat(output.values, axis=0)
+        
+        new_outputs.append(tf.identity(output))
+    
+    (images, image_ids, pred_bboxes, pred_bboxes_rescaled, pred_classes,
      scores, gt_classes, gt_bboxes, gt_bboxes_rescaled, area, is_crowd
      ) = new_outputs
 

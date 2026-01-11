@@ -161,7 +161,16 @@ def perform_evaluation(config, dataset, task, eval_steps, ckpt, strategy):
       examples = next(iterator)
       outputs = strategy.run(single_step, (examples,))
       if outputs is not None:
-        outputs = [strategy.gather(t, axis=0) for t in outputs]
+          gathered = []
+          for t in outputs:
+              # Always unwrap PerReplica, regardless of dtype
+              if isinstance(t, tf.distribute.DistributedValues):
+                  # Concatenate values from all replicas
+                  gathered.append(tf.concat(t.values, axis=0))
+              else:
+                  # Already gathered or scalar
+                  gathered.append(t)
+          outputs = gathered
       return outputs
 
     iterator = iter(dataset)

@@ -6,9 +6,12 @@ from PIL import Image, ImageDraw
 import json
 import random
 
-TFRECORD = "/tmp/ts_coco/tfrecords/train-00000-of-00001.tfrecord"
-ANNOTATIONS = "/tmp/ts_coco/annotations/instances_train.json"
-OUTDIR = "/usr1/home/s124mdg54_01/ts2seq/visualizations"
+
+DIR = "/projects/pix2seqdata"
+
+TFRECORD = f"{DIR}/tmp/ts_coco/tfrecords/train-00000-of-00001.tfrecord"
+ANNOTATIONS = f"{DIR}/tmp/ts_coco/annotations/instances_train.json"
+OUTDIR = "/home/e240203/ts2seq/visualizations"
 NUM_SHOW = 20
 MAX_EVENTS_TO_SHOW = 2  # Show only 2 random EVENTS (box + label) per image
 

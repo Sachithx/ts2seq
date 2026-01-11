@@ -25,14 +25,14 @@ def D(**kwargs):
 architecture_config_map = {
     'vit-b': D(
         resnet_variant='c1',
-        num_encoder_layers=12,
-        dim_att=768,
-        dim_mlp=3072,
-        num_heads=12,
-        num_decoder_layers=6,
-        dim_att_dec=512,
-        dim_mlp_dec=2048,
-        num_heads_dec=16,
+        num_encoder_layers=2,
+        dim_att=32,
+        dim_mlp=128,
+        num_heads=2,
+        num_decoder_layers=2,
+        dim_att_dec=32,
+        dim_mlp_dec=128,
+        num_heads_dec=2,
     ),
     'vit-l': D(
         resnet_variant='c1',
