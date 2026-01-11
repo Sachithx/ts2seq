@@ -761,6 +761,10 @@ def resnet(resnet_depth,
            groups=0):
   """Returns the ResNet model for a given size and number of output classes."""
   model_params = {
+      8: {                          # ADD THIS
+          'block': ResidualBlock,   # ADD THIS
+          'layers': [1, 1, 1, 1]    # ADD THIS - very shallow network
+      },                            # ADD THIS
       18: {
           'block': ResidualBlock,
           'layers': [2, 2, 2, 2]

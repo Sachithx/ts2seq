@@ -14,7 +14,7 @@ module load Miniconda3
 source activate
 conda activate test
 
-cd ~/pix2seq
+cd ~/ts2seq
 
 # Run eval with ALL necessary config overrides
 python3 run.py --mode=eval \

@@ -1,6 +1,7 @@
 """
-MEMORY-EFFICIENT Convert - Optimized for large datasets
-Single-threaded with minimal memory footprint
+MEMORY-EFFICIENT Convert - CORRECT VERSION
+Both COCO JSON and TFRecords use PIXEL coordinates
+Pix2Seq normalizes them automatically during data loading
 """
 
 import torch
@@ -35,7 +36,7 @@ class TimeSeriesAnnotationToCOCO:
     def create_annotations_json(self, 
                                 dataset: CompleteHierarchicalEventDataset,
                                 output_path: str):
-        """Create COCO-style annotations JSON"""
+        """Create COCO-style annotations JSON with images and annotations (PIXEL coordinates)"""
         unique_labels = set()
         for annotation in dataset.annotations:
             for event in annotation.all_events:
@@ -50,6 +51,54 @@ class TimeSeriesAnnotationToCOCO:
                 "supercategory": "event"
             })
         
+        # Create images and annotations lists
+        images = []
+        annotations = []
+        annotation_id = 1
+        
+        print(f"  Building annotations for {len(dataset)} images...")
+        for idx in range(len(dataset)):
+            annotation_obj = dataset[idx]
+            L = len(annotation_obj.sequence)
+            
+            # Add image entry
+            images.append({
+                "id": idx,
+                "file_name": f"ts_{idx}.png",
+                "height": self.image_height,
+                "width": self.image_width
+            })
+            
+            # Add annotation entries for this image
+            events = [e for e in annotation_obj.all_events if e.event_type != "regime"]
+            
+            for event in events:
+                W = float(self.image_width)
+                H = float(self.image_height)
+                
+                # PIXEL coordinates (standard COCO format)
+                xmin = (event.start / L) * W
+                xmax = ((event.end + 1) / L) * W
+                xmax = min(W, xmax)
+                ymin, ymax = 0.0, H
+                
+                bbox_width = xmax - xmin
+                bbox_height = ymax - ymin
+                area = bbox_width * bbox_height
+                
+                annotations.append({
+                    "id": annotation_id,
+                    "image_id": idx,
+                    "category_id": int(event.label),
+                    "bbox": [xmin, ymin, bbox_width, bbox_height],  # COCO format: [x, y, w, h] in PIXELS
+                    "area": area,
+                    "iscrowd": 0
+                })
+                annotation_id += 1
+            
+            if (idx + 1) % 5000 == 0:
+                print(f"    Processed {idx + 1}/{len(dataset)} images...")
+        
         annotations_dict = {
             "info": {
                 "description": "Time Series Hierarchical Event Detection Dataset",
@@ -58,15 +107,20 @@ class TimeSeriesAnnotationToCOCO:
             },
             "licenses": [],
             "categories": categories,
-            "images": [],
-            "annotations": []
+            "images": images,
+            "annotations": annotations
         }
         
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, 'w') as f:
             json.dump(annotations_dict, f, indent=2)
         
-        print(f"✓ Created annotations JSON with {len(categories)} categories")
+        print(f"✓ Created annotations JSON:")
+        print(f"    {len(categories)} categories")
+        print(f"    {len(images)} images")
+        print(f"    {len(annotations)} annotations")
+        print(f"    Bbox format: PIXEL coordinates ✓")
+        
         return annotations_dict
     
     def timeseries_to_image(self, 
@@ -118,6 +172,7 @@ class TimeSeriesAnnotationToCOCO:
 def create_tfrecords_simple_with_progress(converter, dataset, output_path):
     """
     MEMORY-EFFICIENT: Process one sequence at a time with progress tracking
+    Stores PIXEL coordinates (Pix2Seq normalizes during loading)
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
@@ -151,31 +206,27 @@ def create_tfrecords_simple_with_progress(converter, dataset, output_path):
                 if len(events) == 0:
                     continue
                 
-                # Prepare bounding boxes
+                # Prepare bounding boxes (PIXEL coordinates)
                 bboxes_ymin, bboxes_xmin, bboxes_ymax, bboxes_xmax = [], [], [], []
                 labels, areas, is_crowd = [], [], []
                 
+                W = float(converter.image_width)
+                H = float(converter.image_height)
+                
                 for event in events:
-                    # xmin = event.start / L
-                    # xmax = min(1.0, (event.end + 1) / L)
-                    # ymin, ymax = 0.0, 1.0
-
-                    W = float(converter.image_width)
-                    H = float(converter.image_height)
-
+                    # PIXEL coordinates (Pix2Seq will normalize during loading)
                     xmin = (event.start / L) * W
                     xmax = ((event.end + 1) / L) * W
                     xmax = min(W, xmax)
-
                     ymin, ymax = 0.0, H
 
-                    bboxes_ymin.append(ymin)
-                    bboxes_xmin.append(xmin)
-                    bboxes_ymax.append(ymax)
-                    bboxes_xmax.append(xmax)
+                    bboxes_ymin.append(ymin)  # PIXELS
+                    bboxes_xmin.append(xmin)  # PIXELS
+                    bboxes_ymax.append(ymax)  # PIXELS
+                    bboxes_xmax.append(xmax)  # PIXELS
                     labels.append(event.label)
                     
-                    area = (ymax - ymin) * (xmax - xmin) * converter.image_height * converter.image_width
+                    area = (ymax - ymin) * (xmax - xmin)
                     areas.append(area)
                     is_crowd.append(0)
                 
@@ -214,6 +265,7 @@ def create_tfrecords_simple_with_progress(converter, dataset, output_path):
     
     print(f" Done!")
     print(f"✓ Created TFRecord with {written_count}/{num_examples} sequences")
+    print(f"  Bbox format: PIXEL coordinates (Pix2Seq will normalize) ✓")
     
     # Final cleanup
     gc.collect()
@@ -226,16 +278,17 @@ def convert_timeseries_dataset_to_coco(
     output_dir: str = '/projects/pix2seqdata/ts_coco',
     image_size: int = 64
 ):
-    """Complete pipeline - MEMORY-EFFICIENT VERSION"""
+    """Complete pipeline - CORRECT VERSION with PIXEL coordinates"""
     print("\n" + "="*80)
-    print("MEMORY-EFFICIENT TIME SERIES → COCO FORMAT CONVERSION")
-    print("Single-threaded, minimal memory footprint")
+    print("TIME SERIES → COCO FORMAT CONVERSION")
+    print("Using PIXEL coordinates (Pix2Seq standard)")
     print("="*80)
     
     print(f"\nConfiguration:")
     print(f"  - Image size: {image_size}x{image_size}")
     print(f"  - Visualization: {viz_type}")
     print(f"  - Output: {output_dir}")
+    print(f"  - Coordinate format: PIXEL (Pix2Seq normalizes during loading)")
     
     print(f"\n[1/4] Dataset Information")
     print(f"  - Train sequences: {len(train_dataset)}")
@@ -249,7 +302,7 @@ def convert_timeseries_dataset_to_coco(
     )
     print(f"  ✓ Converter ready")
     
-    print(f"\n[3/4] Creating COCO Annotations")
+    print(f"\n[3/4] Creating COCO Annotations (PIXEL coordinates)")
     converter.create_annotations_json(
         train_dataset,
         output_path=f'{output_dir}/annotations/instances_train.json'
@@ -259,7 +312,7 @@ def convert_timeseries_dataset_to_coco(
         output_path=f'{output_dir}/annotations/instances_val.json'
     )
     
-    print(f"\n[4/4] Creating TFRecords")
+    print(f"\n[4/4] Creating TFRecords (PIXEL coordinates)")
     
     print(f"\n--- Training Data ---")
     create_tfrecords_simple_with_progress(
@@ -284,6 +337,8 @@ def convert_timeseries_dataset_to_coco(
     print(f"  - {output_dir}/annotations/instances_val.json")
     print(f"  - {output_dir}/tfrecords/train-00000-of-00001.tfrecord")
     print(f"  - {output_dir}/tfrecords/val-00000-of-00001.tfrecord")
+    print(f"\n✅ Both JSON and TFRecords use PIXEL coordinates")
+    print(f"✅ Pix2Seq will normalize to [0,1] during data loading")
 
 
 if __name__ == "__main__":
@@ -302,7 +357,6 @@ if __name__ == "__main__":
         train_dataset=train_dataset,
         val_dataset=val_dataset,
         viz_type='line_plot',
-        output_dir=f'{DIR}/tmp/ts_coco',
-        image_size=224
+        output_dir=f'{DIR}/ts_coco',
+        image_size=64
     )
-    
