@@ -357,6 +357,6 @@ if __name__ == "__main__":
         train_dataset=train_dataset,
         val_dataset=val_dataset,
         viz_type='line_plot',
-        output_dir=f'{DIR}/ts_coco',
-        image_size=64
+        output_dir=f'{DIR}/tmp/ts_coco',
+        image_size=224
     )

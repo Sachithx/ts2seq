@@ -27,3 +27,4 @@ data/HAR/val.pt
 debug_viz/*
 visualizations/*
 visualizations/
+data/HAR/*
