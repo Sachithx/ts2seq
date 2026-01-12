@@ -45,7 +45,7 @@ def get_config(config_str=None):
           name='object_detection',
           vocab_id=10,
           image_size=image_size,
-          quantization_bins=1000,
+          quantization_bins=128,
           max_instances_per_image=max_instances_per_image,
           max_instances_per_image_test=max_instances_per_image_test,
           train_transforms=transform_configs.get_object_detection_train_transforms(
@@ -85,13 +85,13 @@ def get_config(config_str=None):
           name='encoder_ar_decoder',
           image_size=image_size,
           max_seq_len=512,
-          vocab_size=3000,                  # Note: should be large enough for 100 + num_classes + quantization_bins + (optional) text
+          vocab_size=1500,                  # Note: should be large enough for 100 + num_classes + quantization_bins + (optional) text
           coord_vocab_shift=1000,           # Note: make sure num_class <= coord_vocab_shift - 100
-          text_vocab_shift=3000,            # Note: make sure coord_vocab_shift + quantization_bins <= text_vocab_shift
+          text_vocab_shift=1500,            # Note: make sure coord_vocab_shift + quantization_bins <= text_vocab_shift
           use_cls_token=False,
           shared_decoder_embedding=True,
           decoder_output_bias=True,
-          patch_size=16,
+          patch_size=8,
           drop_path=0.1,
           drop_units=0.1,
           drop_att=0.0,

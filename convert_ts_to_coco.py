@@ -16,7 +16,7 @@ import gc
 DIR = "/projects/pix2seqdata"
 
 from hierarchical_event_labeling import (
-    CompleteHierarchicalEventDataset, 
+    EnhancedHierarchicalEventDataset, 
     HierarchicalAnnotation,
     VOCAB
 )
@@ -34,7 +34,7 @@ class TimeSeriesAnnotationToCOCO:
         self.viz_type = viz_type
     
     def create_annotations_json(self, 
-                                dataset: CompleteHierarchicalEventDataset,
+                                dataset: EnhancedHierarchicalEventDataset,
                                 output_path: str):
         """Create COCO-style annotations JSON with images and annotations (PIXEL coordinates)"""
         unique_labels = set()
@@ -272,8 +272,8 @@ def create_tfrecords_simple_with_progress(converter, dataset, output_path):
 
 
 def convert_timeseries_dataset_to_coco(
-    train_dataset: CompleteHierarchicalEventDataset = None,
-    val_dataset: CompleteHierarchicalEventDataset = None,
+    train_dataset: EnhancedHierarchicalEventDataset = None,
+    val_dataset: EnhancedHierarchicalEventDataset = None,
     viz_type: str = 'line_plot',
     output_dir: str = '/projects/pix2seqdata/ts_coco',
     image_size: int = 64
@@ -346,10 +346,10 @@ if __name__ == "__main__":
     import hierarchical_event_labeling as hel
     
     print("Loading datasets...")
-    torch.serialization.add_safe_globals([hel.CompleteHierarchicalEventDataset])
+    torch.serialization.add_safe_globals([hel.EnhancedHierarchicalEventDataset])
     
-    train_dataset = torch.load('data/HAR/train_event_dataset.pt', weights_only=False)
-    val_dataset = torch.load('data/HAR/val_event_dataset.pt', weights_only=False)
+    train_dataset = torch.load(f'{DIR}/HAR_data/HAR/har_ann_train_dataset.pt', weights_only=False)
+    val_dataset = torch.load(f'{DIR}/HAR_data/HAR/har_ann_val_dataset.pt', weights_only=False)
     
     print(f"Loaded: {len(train_dataset)} train, {len(val_dataset)} val")
     
