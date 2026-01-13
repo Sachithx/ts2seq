@@ -25,6 +25,3 @@ python3 run.py --mode=eval \
   --config.dataset.coco_annotations_dir_for_metrics='/projects/pix2seqdata/tmp/ts_coco/annotations' \
   --config.dataset.val_filename_for_metrics='instances_val.json' \
   --config.task.image_size='(224, 224)' \
-  --config.model.pretrained_ckpt='' \
-  --config.eval.batch_size=8 \
-  --config.eval.steps=0 
