@@ -22,10 +22,10 @@ def parse_args():
                        choices=['flatten', 'average', 'first'],
                        help='Channel processing mode')
     parser.add_argument('--data-dir', type=str,
-                       default='/home/sachithxcviii/ts2seq/data/HAR/multichannel_images',
+                       default='/home/AD/sachith/ts2seq/data/multichannel_images',
                        help='Path to data directory')
     parser.add_argument('--encoder-path', type=str,
-                       default='/home/sachithxcviii/ts2seq/data/HAR/extracted_encoder/encoder_weights.pth',
+                       default='/home/AD/sachith/ts2seq/data/HAR_pretrained/google_vit_encoder',
                        help='Path to pretrained encoder weights')
     
     # Training arguments
@@ -49,6 +49,8 @@ def parse_args():
                        help='Hidden dimensions for classification head')
     parser.add_argument('--dropout', type=float, default=0.1,
                        help='Dropout rate')
+    parser.add_argument('--patch-size', type=int, default=16,
+                       help='Patch size for the encoder')
     
     # Optimization arguments
     parser.add_argument('--grad-accum-steps', type=int, default=1,
@@ -111,6 +113,7 @@ def main():
     # Create model
     print("\n[2/4] Creating model...")
     model = EncoderClassifier(
+        patch_size=args.patch_size,
         num_classes=6,
         pretrained_encoder_path=args.encoder_path,
         freeze_encoder=args.freeze_encoder,

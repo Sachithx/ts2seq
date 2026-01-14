@@ -159,7 +159,7 @@ class Pix2SeqViTEncoder(nn.Module):
     
     def __init__(self,
                  image_size=224,
-                 patch_size=8,
+                 patch_size=16,
                  in_channels=3,
                  hidden_dim=768,
                  num_layers=12,
@@ -413,7 +413,7 @@ class ClassificationHead(nn.Module):
                  input_dim=768,
                  num_classes=6,
                  hidden_dims=[512],
-                 dropout=0.1):
+                 dropout=0.3):
         super().__init__()
         
         layers = []
@@ -449,11 +449,13 @@ class EncoderClassifier(nn.Module):
                  freeze_encoder=True,
                  hidden_dims=[512],
                  dropout=0.1,
+                 patch_size=16,
                  image_size=224):
         super().__init__()
         
         # Encoder
         self.encoder = Pix2SeqViTEncoder(
+            patch_size=patch_size,
             image_size=image_size,
             pretrained_weights_path=pretrained_encoder_path
         )
