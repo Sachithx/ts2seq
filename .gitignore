@@ -29,3 +29,4 @@ visualizations/*
 visualizations/
 data/HAR/*
 central-eon-484208-b2-d8391673385f.json
+opt_train/
