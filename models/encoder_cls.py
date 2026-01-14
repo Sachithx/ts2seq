@@ -410,9 +410,9 @@ class ClassificationHead(nn.Module):
     """Classification head for downstream tasks."""
     
     def __init__(self,
-                 input_dim=768,
+                 input_dim=6912,
                  num_classes=6,
-                 hidden_dims=[512],
+                 hidden_dims=[1024, 512, 256],
                  dropout=0.3):
         super().__init__()
         
@@ -445,14 +445,17 @@ class EncoderClassifier(nn.Module):
     
     def __init__(self,
                  num_classes=6,
+                 num_channels=9,
                  pretrained_encoder_path=None,
                  freeze_encoder=True,
-                 hidden_dims=[512],
-                 dropout=0.1,
-                 patch_size=16,
+                 hidden_dims=[1024, 512, 256],
+                 dropout=0.3,
+                 encoder_dim=768,
+                 patch_size=8,
                  image_size=224):
         super().__init__()
-        
+        self.num_channels = num_channels
+        self.encoder_dim = encoder_dim
         # Encoder
         self.encoder = Pix2SeqViTEncoder(
             patch_size=patch_size,
@@ -465,33 +468,50 @@ class EncoderClassifier(nn.Module):
             for param in self.encoder.parameters():
                 param.requires_grad = False
             print("✓ Encoder frozen")
-        
-        # Classification head
+
+        # Flatten layer: [channels * hidden_dim] -> first projection
+        # This is like PatchTST's flatten operation
+        flatten_input_dim = self.num_channels * self.encoder_dim  # 9 * 768 = 6912
+        # Classification head with flattened input
         self.classifier = ClassificationHead(
-            input_dim=768,
+            input_dim=flatten_input_dim,
             num_classes=num_classes,
             hidden_dims=hidden_dims,
             dropout=dropout
         )
+        self._print_summary(freeze_encoder, hidden_dims, num_classes)
+    
+    def forward(self, x):
+        # Step 1: Process each channel through encoder
+        # Input: [B*C, 3, 224, 224]
+        features = self.encoder(x)  # Output: [B*C, num_patches, 768]
         
-        print(f"\n=== EncoderClassifier ===")
-        print(f"Encoder:  ViT-Base (768 dim, 12 layers)")
-        print(f"Frozen:  {freeze_encoder}")
+        # Step 2: Global average pooling per channel [B*C, num_patches, 768] -> [B*C, 768]
+        pooled = features.mean(dim=1)
+
+        # Step 3: Reshape to group channels (like PatchTST) [B*C, 768] -> [B, C, 768]
+        batch_size = pooled.size(0) // self.num_channels
+        pooled = pooled.view(batch_size, self.num_channels, -1)
+
+        # Step 4: Flatten channels dimension (PatchTST-style)
+        # [B, C, 768] -> [B, C*768]
+        flattened = pooled.view(batch_size, -1)
+
+        # Step 5: Project to classes
+        # [B, C*768] -> [B, num_classes]
+        logits = self.classifier(flattened)
+        
+        return logits
+
+    def _print_summary(self, freeze_encoder, hidden_dims, num_classes):
+        print(f"\n=== EncoderClassifier (PatchTST-style) ===")
+        print(f"Encoder: ViT-Base ({self.encoder_dim} dim, 12 layers)")
+        print(f"Channels: {self.num_channels}")
+        print(f"Flattened input: {self.num_channels * self.encoder_dim}")
+        print(f"Frozen: {freeze_encoder}")
         print(f"Head: {hidden_dims}")
         print(f"Classes: {num_classes}")
         total_params = sum(p.numel() for p in self.parameters())
         trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
         print(f"Total params: {total_params:,}")
         print(f"Trainable params: {trainable_params:,}")
-    
-    def forward(self, x):
-        # Extract features [B, num_patches, 768]
-        features = self.encoder(x)
-        
-        # Global average pooling [B, 768]
-        pooled = features.mean(dim=1)
-        
-        # Classify
-        logits = self.classifier(pooled)
-        
-        return logits

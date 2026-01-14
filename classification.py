@@ -73,11 +73,10 @@ def train_har_classifier(
     # Create model
     print("\n[2/5] Loading model with pretrained encoder...")
     model = EncoderClassifier(
-        patch_size=16,
         num_classes=6,
         pretrained_encoder_path=pretrained_encoder_path,
         freeze_encoder=True,
-        hidden_dims=[512],
+        hidden_dims=[1024, 512, 256],
         dropout=0.1,
         image_size=224
     )

@@ -25,13 +25,13 @@ def parse_args():
                        default='/home/AD/sachith/ts2seq/data/multichannel_images',
                        help='Path to data directory')
     parser.add_argument('--encoder-path', type=str,
-                       default='/home/AD/sachith/ts2seq/data/HAR_pretrained/google_vit_encoder',
+                       default='/home/AD/sachith/ts2seq/data/HAR_pretrained/google_vit_encoder/encoder_weights.pth',
                        help='Path to pretrained encoder weights')
     
     # Training arguments
     parser.add_argument('--epochs', type=int, default=20,
                        help='Number of training epochs')
-    parser.add_argument('--batch-size', type=int, default=256,
+    parser.add_argument('--batch-size', type=int, default=32,
                        help='Training batch size')
     parser.add_argument('--lr', type=float, default=1e-3,
                        help='Learning rate')
@@ -45,13 +45,13 @@ def parse_args():
                        help='Freeze encoder weights')
     parser.add_argument('--no-freeze-encoder', action='store_false', dest='freeze_encoder',
                        help='Do not freeze encoder weights')
-    parser.add_argument('--hidden-dims', type=int, nargs='+', default=[512],
+    parser.add_argument('--hidden-dims', type=int, nargs='+', default=[128],
                        help='Hidden dimensions for classification head')
     parser.add_argument('--dropout', type=float, default=0.1,
                        help='Dropout rate')
     parser.add_argument('--patch-size', type=int, default=16,
                        help='Patch size for the encoder')
-    
+                           
     # Optimization arguments
     parser.add_argument('--grad-accum-steps', type=int, default=1,
                        help='Gradient accumulation steps')
@@ -65,6 +65,8 @@ def parse_args():
                        help='Number of data loader workers')
     parser.add_argument('--no-augmentation', action='store_true',
                        help='Disable data augmentation')
+    parser.add_argument('--data-pct', type=int, default=5,
+                       help='Percentage of training data to use (1-100)')
     
     # Early stopping
     parser.add_argument('--early-stopping-patience', type=int, default=7,
@@ -104,10 +106,12 @@ def main():
     print("\n[1/4] Creating dataloaders...")
     train_loader, val_loader, test_loader = create_har_dataloaders(
         data_dir=args.data_dir,
-        mode=args.mode,
+        mode=args.mode, 
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        use_augmentation=not args.no_augmentation
+        use_augmentation=not args.no_augmentation,
+        train_percentage=args.data_pct,
+        subset_indices_path=f'subset_indices/har_{args.data_pct}pct_seed42.pt'  # Will save here
     )
     
     # Create model

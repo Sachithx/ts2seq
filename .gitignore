@@ -36,3 +36,6 @@ checkpoints/optimized/
 checkpoints/optimized/logs/ 
 data/HAR_pretrained/google_vit_encoder/ 
  
+data/HAR_pretrained/own_model/encoder_weights.pth
+data/HAR_pretrained/own_model/encoder_metadata.json
+subset_indices/har_5pct_seed42.pt
