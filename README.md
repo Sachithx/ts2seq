@@ -314,21 +314,3 @@ python main.py --max-grad-norm 0.5
 ```
 
 ---
-
-## Citation
-
-If you use this code, please cite:
-
-```bibtex
-@misc{har_optimized_training,
-  title={Optimized HAR Classification with Pix2Seq Encoder},
-  author={Your Name},
-  year={2025}
-}
-```
-
----
-
-## License
-
-MIT License - Feel free to use and modify!
