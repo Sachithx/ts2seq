@@ -21,7 +21,7 @@ class MultiHeadAttention(nn.Module):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
-        self. head_dim = 64  # From your weights:  (12, 64)
+        self.head_dim = 64  # From your weights:  (12, 64)
         
         # Q, K, V projections
         # TF shape: (768, 12, 64), PyTorch:  needs (768, 12*64=768)
@@ -42,7 +42,7 @@ class MultiHeadAttention(nn.Module):
         Returns:
             output: [batch, seq_len, hidden_dim]
         """
-        batch_size, seq_len, _ = x. shape
+        batch_size, seq_len, _ = x.shape
         
         # Project to Q, K, V
         Q = self.query_dense(x)  # [B, L, 768]
@@ -65,7 +65,7 @@ class MultiHeadAttention(nn.Module):
         
         # Concatenate heads
         attn_output = attn_output.transpose(1, 2).contiguous()  # [B, L, 12, 64]
-        attn_output = attn_output. view(batch_size, seq_len, -1)  # [B, L, 768]
+        attn_output = attn_output.view(batch_size, seq_len, -1)  # [B, L, 768]
         
         # Output projection
         output = self.output_dense(attn_output)
@@ -195,7 +195,7 @@ class Pix2SeqViTEncoder(nn.Module):
         ])
         
         # Output layer norm
-        self. output_ln = nn.LayerNorm(hidden_dim)
+        self.output_ln = nn.LayerNorm(hidden_dim)
         
         # Initialize
         self._init_weights()
@@ -231,7 +231,7 @@ class Pix2SeqViTEncoder(nn.Module):
         x = self.stem_conv(x)
         
         # Flatten patches:  [B, 768, H/8, W/8] -> [B, 768, num_patches] -> [B, num_patches, 768]
-        x = x. flatten(2).transpose(1, 2)
+        x = x.flatten(2).transpose(1, 2)
         
         # Layer norm
         x = self.stem_ln(x)
@@ -244,7 +244,7 @@ class Pix2SeqViTEncoder(nn.Module):
             x = layer(x)
         
         # Output layer norm
-        x = self. output_ln(x)
+        x = self.output_ln(x)
         
         return x  # [B, num_patches, 768]
     
@@ -332,7 +332,7 @@ class Pix2SeqViTEncoder(nn.Module):
             for i, part in enumerate(parts):
                 if 'enc_layers' in part:
                     # Next part should be the number
-                    if i + 1 < len(parts) and parts[i + 1]. isdigit():
+                    if i + 1 < len(parts) and parts[i + 1].isdigit():
                         layer_idx = int(parts[i + 1])
                         break
             
@@ -350,12 +350,12 @@ class Pix2SeqViTEncoder(nn.Module):
             # MHA projections
             elif 'mha/_query_dense/kernel' in tf_name:
                 # TF: [768, 12, 64], PyTorch: [768, 768] needs reshape
-                self._temp_tensor = tensor.reshape(self. hidden_dim, -1).t()
-                return f'{prefix}. mha. query_dense.weight'
+                self._temp_tensor = tensor.reshape(self.hidden_dim, -1).t()
+                return f'{prefix}.mha.query_dense.weight'
             elif 'mha/_query_dense/bias' in tf_name:
                 # TF: [12, 64], PyTorch: [768]
                 self._temp_tensor = tensor.flatten()
-                return f'{prefix}. mha.query_dense.bias'
+                return f'{prefix}.mha.query_dense.bias'
             
             elif 'mha/_key_dense/kernel' in tf_name:
                 self._temp_tensor = tensor.reshape(self.hidden_dim, -1).t()
@@ -369,12 +369,12 @@ class Pix2SeqViTEncoder(nn.Module):
                 return f'{prefix}.mha.value_dense.weight'
             elif 'mha/_value_dense/bias' in tf_name:
                 self._temp_tensor = tensor.flatten()
-                return f'{prefix}.mha. value_dense.bias'
+                return f'{prefix}.mha.value_dense.bias'
             
             elif 'mha/_output_dense/kernel' in tf_name: 
                 # TF: [12, 64, 768], PyTorch: [768, 768]
                 self._temp_tensor = tensor.reshape(-1, self.hidden_dim).t()
-                return f'{prefix}.mha.output_dense. weight'
+                return f'{prefix}.mha.output_dense.weight'
             elif 'mha/_output_dense/bias' in tf_name:
                 return f'{prefix}.mha.output_dense.bias'
             
@@ -382,9 +382,9 @@ class Pix2SeqViTEncoder(nn.Module):
             elif 'mlp/mlp_layers/0/dense1/kernel' in tf_name: 
                 # TF: [768, 3072], PyTorch: [3072, 768]
                 self._temp_tensor = tensor.t()
-                return f'{prefix}. mlp.dense1.weight'
+                return f'{prefix}.mlp.dense1.weight'
             elif 'mlp/mlp_layers/0/dense1/bias' in tf_name:
-                return f'{prefix}. mlp.dense1.bias'
+                return f'{prefix}.mlp.dense1.bias'
             
             elif 'mlp/mlp_layers/0/dense2/kernel' in tf_name:
                 # TF: [3072, 768], PyTorch: [768, 3072]
@@ -395,7 +395,7 @@ class Pix2SeqViTEncoder(nn.Module):
             
             # MLP LayerNorm
             elif 'mlp/layernorms/0/gamma' in tf_name:
-                return f'{prefix}.mlp. layernorm.weight'
+                return f'{prefix}.mlp.layernorm.weight'
             elif 'mlp/layernorms/0/beta' in tf_name:
                 return f'{prefix}.mlp.layernorm.bias'
         
@@ -423,8 +423,8 @@ class ClassificationHead(nn.Module):
             layers.extend([
                 nn.Linear(dims[i], dims[i+1]),
                 nn.LayerNorm(dims[i+1]),
-                nn. GELU(),
-                nn. Dropout(dropout)
+                nn.GELU(),
+                nn.Dropout(dropout)
             ])
         
         # Final classification layer
@@ -478,7 +478,7 @@ class EncoderClassifier(nn.Module):
         print(f"Head: {hidden_dims}")
         print(f"Classes: {num_classes}")
         total_params = sum(p.numel() for p in self.parameters())
-        trainable_params = sum(p. numel() for p in self.parameters() if p.requires_grad)
+        trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
         print(f"Total params: {total_params:,}")
         print(f"Trainable params: {trainable_params:,}")
     

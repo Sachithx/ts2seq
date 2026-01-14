@@ -91,7 +91,7 @@ class MultiChannelHARDataset(Dataset):
 
 
 def create_har_dataloaders(
-    data_dir='data/HAR/multichannel_images',
+    data_dir='/home/sachithxcviii/ts2seq/data/HAR/multichannel_images',
     mode='flatten',
     batch_size=32,
     num_workers=4,
