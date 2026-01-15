@@ -72,6 +72,64 @@ class MultiHeadAttention(nn.Module):
         
         return output
 
+# ============================================================================
+# ATTENTION POOLING
+# ============================================================================
+
+class AttentionPooling(nn.Module):
+    """
+    Attention-based pooling to aggregate patch features.
+    Learns which patches are important for classification.
+    """
+    
+    def __init__(self, hidden_dim=768, num_heads=1):
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+        
+        # Attention scoring network
+        self.attention = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 4),
+            nn.Tanh(),
+            nn.Linear(hidden_dim // 4, num_heads)
+        )
+        
+    def forward(self, x):
+        """
+        Args:
+            x: [batch, num_patches, hidden_dim]
+        
+        Returns:
+            pooled: [batch, hidden_dim]
+        """
+        # Compute attention scores for each patch
+        # [B, num_patches, hidden_dim] -> [B, num_patches, num_heads]
+        attn_scores = self.attention(x)
+        
+        # Softmax over patches dimension
+        # [B, num_patches, num_heads]
+        attn_weights = F.softmax(attn_scores, dim=1)
+        
+        if self.num_heads == 1:
+            # Single attention head
+            # [B, num_patches, 1] * [B, num_patches, hidden_dim] -> [B, hidden_dim]
+            pooled = (x * attn_weights).sum(dim=1)
+        else:
+            # Multi-head attention pooling
+            # [B, num_patches, num_heads, 1] * [B, num_patches, 1, hidden_dim]
+            attn_weights = attn_weights.unsqueeze(-1)  # [B, num_patches, num_heads, 1]
+            x_expanded = x.unsqueeze(2)  # [B, num_patches, 1, hidden_dim]
+            
+            # Weighted sum per head
+            # [B, num_patches, num_heads, hidden_dim] -> [B, num_heads, hidden_dim]
+            pooled = (attn_weights * x_expanded).sum(dim=1)
+            
+            # Average across heads
+            # [B, num_heads, hidden_dim] -> [B, hidden_dim]
+            pooled = pooled.mean(dim=1)
+        
+        return pooled
+
 
 # ============================================================================
 # MLP (FEED-FORWARD)
@@ -412,8 +470,8 @@ class ClassificationHead(nn.Module):
     def __init__(self,
                  input_dim=6912,
                  num_classes=6,
-                 hidden_dims=[1024, 512, 256],
-                 dropout=0.3):
+                 hidden_dims=[32],
+                 dropout=0.1):
         super().__init__()
         
         layers = []
@@ -441,21 +499,22 @@ class ClassificationHead(nn.Module):
 # ============================================================================
 
 class EncoderClassifier(nn.Module):
-    """Complete encoder + classifier."""
-    
     def __init__(self,
                  num_classes=6,
                  num_channels=9,
                  pretrained_encoder_path=None,
                  freeze_encoder=True,
-                 hidden_dims=[1024, 512, 256],
-                 dropout=0.3,
+                 hidden_dims=[32],
+                 dropout=0.1,
                  encoder_dim=768,
                  patch_size=8,
-                 image_size=224):
+                 image_size=224,
+                 use_attention_pooling=True):  # ← Add this parameter
         super().__init__()
+        
         self.num_channels = num_channels
         self.encoder_dim = encoder_dim
+        
         # Encoder
         self.encoder = Pix2SeqViTEncoder(
             patch_size=patch_size,
@@ -463,41 +522,46 @@ class EncoderClassifier(nn.Module):
             pretrained_weights_path=pretrained_encoder_path
         )
         
-        # Freeze encoder if requested
+        # Freeze encoder
         if freeze_encoder:
             for param in self.encoder.parameters():
                 param.requires_grad = False
             print("✓ Encoder frozen")
-
-        # Flatten layer: [channels * hidden_dim] -> first projection
-        # This is like PatchTST's flatten operation
-        flatten_input_dim = self.num_channels * self.encoder_dim  # 9 * 768 = 6912
-        # Classification head with flattened input
+        
+        # ← ADD ATTENTION POOLING
+        if use_attention_pooling:
+            self.pooling = AttentionPooling(hidden_dim=encoder_dim, num_heads=1)
+            print("✓ Using attention pooling")
+        else:
+            self.pooling = lambda x: x.mean(dim=1)  # Default mean pooling
+            print("✓ Using mean pooling")
+        
+        # Classifier
+        flatten_input_dim = num_channels * encoder_dim
         self.classifier = ClassificationHead(
             input_dim=flatten_input_dim,
             num_classes=num_classes,
             hidden_dims=hidden_dims,
             dropout=dropout
         )
+        
         self._print_summary(freeze_encoder, hidden_dims, num_classes)
     
     def forward(self, x):
-        # Step 1: Process each channel through encoder
-        # Input: [B*C, 3, 224, 224]
-        features = self.encoder(x)  # Output: [B*C, num_patches, 768]
+        # [B*C, 3, 224, 224] -> [B*C, num_patches, 768]
+        features = self.encoder(x)
         
-        # Step 2: Global average pooling per channel [B*C, num_patches, 768] -> [B*C, 768]
-        pooled = features.mean(dim=1)
-
-        # Step 3: Reshape to group channels (like PatchTST) [B*C, 768] -> [B, C, 768]
+        # ← USE ATTENTION POOLING INSTEAD OF MEAN
+        # [B*C, num_patches, 768] -> [B*C, 768]
+        pooled = self.pooling(features)
+        
+        # [B*C, 768] -> [B, C, 768]
         batch_size = pooled.size(0) // self.num_channels
         pooled = pooled.view(batch_size, self.num_channels, -1)
-
-        # Step 4: Flatten channels dimension (PatchTST-style)
+        
         # [B, C, 768] -> [B, C*768]
         flattened = pooled.view(batch_size, -1)
-
-        # Step 5: Project to classes
+        
         # [B, C*768] -> [B, num_classes]
         logits = self.classifier(flattened)
         

@@ -24,6 +24,7 @@ import numpy as np
 from collections import defaultdict
 import warnings
 warnings.filterwarnings('ignore')
+from models.encoder_cls import EncoderClassifier
 
 # Optional: TensorBoard
 try:
@@ -451,20 +452,28 @@ class OptimizedTrainer:
     def save_checkpoint(self, epoch, val_acc, is_best=False):
         """Save checkpoint."""
         checkpoint = {
-            'epoch': epoch,
+            'epoch': int(epoch),  # ← Convert to Python int
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': {
-                'current_epoch': self.scheduler.current_epoch,
-                'base_lr': self.scheduler.base_lr
+                'current_epoch': int(self.scheduler.current_epoch),  # ← Convert to int
+                'base_lr': float(self.scheduler.base_lr)  # ← Convert to float
             },
-            'val_acc': val_acc,
-            'history': self.history,
+            'val_acc': float(val_acc),  # ← Convert to Python float
+            'best_val_acc': float(self.best_val_acc),  # ← Add this
+            'history': {
+                'train_loss': [float(x) for x in self.history['train_loss']],  # ← Convert list elements
+                'train_acc': [float(x) for x in self.history['train_acc']],
+                'val_loss': [float(x) for x in self.history['val_loss']],
+                'val_acc': [float(x) for x in self.history['val_acc']],
+                'learning_rates': [float(x) for x in self.history['learning_rates']],
+                'epoch_times': [float(x) for x in self.history['epoch_times']]
+            },
             'config': {
-                'learning_rate': self.learning_rate,
-                'num_epochs': self.num_epochs,
-                'gradient_accumulation_steps': self.gradient_accumulation_steps,
-                'use_amp': self.use_amp
+                'learning_rate': float(self.learning_rate),
+                'num_epochs': int(self.num_epochs),
+                'gradient_accumulation_steps': int(self.gradient_accumulation_steps),
+                'use_amp': bool(self.use_amp)
             }
         }
         
@@ -543,7 +552,7 @@ class OptimizedTrainer:
             
             print(f"{'='*80}\n")
         
-        # Training complete
+        # # Training complete
         total_time = time.time() - total_start_time
         
         print("\n" + "="*80)
@@ -554,7 +563,21 @@ class OptimizedTrainer:
         
         # Load best model and test
         print("\nLoading best model for testing...")
-        checkpoint = torch.load(self.save_dir / 'best_model.pth')
+
+
+        model = EncoderClassifier(
+            patch_size=8,
+            num_classes=6,
+            pretrained_encoder_path="/home/AD/sachith/ts2seq/data/HAR_pretrained/own_model/encoder_weights.pth",
+            freeze_encoder=True,
+            hidden_dims=[512, 256],
+            dropout=0.3,
+            image_size=224
+        )
+        if hasattr(torch, 'compile'):
+            print("\n✓ Compiling model with torch.compile...")
+            model = torch.compile(model, mode='reduce-overhead')
+        checkpoint = torch.load("/home/AD/sachith/ts2seq/checkpoints/optimized/best_model.pth", weights_only=False)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         
         test_loss, test_acc = self.test()

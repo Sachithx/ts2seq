@@ -45,7 +45,7 @@ def parse_args():
                        help='Freeze encoder weights')
     parser.add_argument('--no-freeze-encoder', action='store_false', dest='freeze_encoder',
                        help='Do not freeze encoder weights')
-    parser.add_argument('--hidden-dims', type=int, nargs='+', default=[128],
+    parser.add_argument('--hidden-dims', type=int, nargs='+', default=[64],
                        help='Hidden dimensions for classification head')
     parser.add_argument('--dropout', type=float, default=0.1,
                        help='Dropout rate')
@@ -111,6 +111,7 @@ def main():
         num_workers=args.num_workers,
         use_augmentation=not args.no_augmentation,
         train_percentage=args.data_pct,
+        force_resample=True,
         subset_indices_path=f'subset_indices/har_{args.data_pct}pct_seed42.pt'  # Will save here
     )
     

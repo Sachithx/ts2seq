@@ -150,7 +150,7 @@ def save_subset_indices(indices, save_path):
 
 def load_subset_indices(load_path):
     """Load selected indices from file."""
-    data = torch.load(load_path)
+    data = torch.load(load_path, weights_only=False)
     indices = data['indices']
     print(f"Loaded subset indices from: {load_path}")
     return indices
